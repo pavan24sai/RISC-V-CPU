@@ -12,25 +12,25 @@
    m5_makerchip_module   // (Expanded in Nav-TLV pane.)
 \TLV
    |calc
-      @0
+      @1
          $reset = *reset;
          $val2[31:0] = $rand2[3:0];
-      @1
-         $val1[31:0]  = >>1$seq_calc_out; // Use previous output as val1 input
+         
+         // calculator logic
+         $val1[31:0]  = >>2$out;
          $sum[31:0]  = $val1[31:0] + $val2[31:0];
          $diff[31:0] = $val1[31:0] - $val2[31:0];
          $prod[31:0] = $val1[31:0] * $val2[31:0];
          $quot[31:0] = $val1[31:0] / $val2[31:0];
-
-         $out[31:0] = $op[1] ? ($op[0] ? $quot[31:0] : $prod[31:0]) : ($op[0] ? $diff[31:0] : $sum[31:0]);
-
-         // The above logic is from the combinational_calculator that was designed before.
-         // Now adding the logic to make this calculator sequential.
-         $seq_calc_out[31:0] = $reset ? 32'd0 : $out;
          
-         // Add counter logic as well
-         $cnt_out[7:0] = $reset ? 0 : (>>1$cnt_out + 1);
-   
+         // counter logic
+         $valid = $reset ? 0 : (>>1$valid + 1);
+      @2
+         $internal_out[31:0] = $op[1] ? ($op[0] ? $quot[31:0] : $prod[31:0]) : ($op[0] ? $diff[31:0] : $sum[31:0]);
+         
+         // Add logic to ensure $out is updated every other cycle
+         $sel_sig = $reset | (!$valid);
+         $out[31:0] = $sel_sig ? 32'd0 : $internal_out;
    
    // Assert these to end simulation (before Makerchip cycle limit).
    *passed = *cyc_cnt > 40;
